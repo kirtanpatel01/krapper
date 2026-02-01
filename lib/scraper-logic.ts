@@ -71,7 +71,7 @@ export async function scrapeIndeedJobs(query: string): Promise<ScrapedJob[]> {
   
   const searchUrl = `https://in.indeed.com/jobs?q=${encodeURIComponent(query)}`;
   // super=true (Residential Proxy), render=false (High performance, low cost)
-  const scrapeDoUrl = `https://api.scrape.do?token=${SCRAPEDO_TOKEN}&url=${encodeURIComponent(searchUrl)}&super=true&render=false`;
+  const scrapeDoUrl = `https://api.scrape.do?token=${SCRAPEDO_TOKEN}&url=${encodeURIComponent(searchUrl)}&super=false&render=false`;
 
   try {
     const response = await axios.get(scrapeDoUrl);
