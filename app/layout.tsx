@@ -10,6 +10,7 @@ export const metadata: Metadata = {
 };
 
 import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "@/components/ui/sonner";
 
 export default function RootLayout({
   children,
@@ -19,7 +20,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`antialiased ${roboto.variable}`}
+        className={`antialiased ${roboto.variable} custom-scrollbar`}
       >
         <ThemeProvider
           attribute="class"
@@ -28,6 +29,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           {children}
+          <Toaster richColors />
         </ThemeProvider>
       </body>
     </html>

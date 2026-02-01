@@ -1,0 +1,27 @@
+{
+  "country": "IN",
+  "ctk": "1jgbpbnqri9tc803",
+  "env": "PRODUCTION",
+  "hostId": "jobsearch",
+  "isApp": false,
+  "isLoggedIn": false,
+  "isMobile": false,
+  "language": "en",
+  "logTk": "1jgbvf9pogmt789j",
+  "logTypes": {
+    "jsuipPlatformInitError": "unused-hash-value",
+    "mosaicPlatformLoadRecovery": "unused-hash-value",
+    "mosaicUserInteraction": "unused-hash-value",
+    "mosaicProviderSeen": "unused-hash-value",
+    "jsuipProviderExecutionError": "unused-hash-value",
+    "jsuipProviderLoadTimings": "unused-hash-value",
+    "jsuipAction": "unused-hash-value",
+    "jsuipPlatformLoadError": "unused-hash-value",
+    "jsuipProviderLoadError": "unused-hash-value"
+  },
+  "pageId": "serpGlobal",
+  "platformId": "jobsearch",
+  "platformLogTk": "1jgbvfa55gmt7812",
+  "publicMetadata": {},
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36"
+}
