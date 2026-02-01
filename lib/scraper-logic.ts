@@ -60,24 +60,28 @@ function extractJson(content: string, varName: string): any {
   return null;
 }
 
-export async function* scrapeIndeedJobs(query: string, maxPages: number = 1): AsyncGenerator<ScrapedJob[]> {
-  const SCRAPEDO_TOKEN = (process.env.SCRAPEDO_TOKEN || '').trim();
+export async function* scrapeIndeedJobs(
+  query: string, 
+  maxPages: number = 1,
+  apiKey?: string,
+  superProxy: boolean = false
+): AsyncGenerator<ScrapedJob[]> {
+  const SCRAPEDO_TOKEN = (apiKey || process.env.SCRAPEDO_TOKEN || '').trim();
 
   if (!SCRAPEDO_TOKEN) {
-    throw new Error('SCRAPEDO_TOKEN is missing in environment variables.');
+    throw new Error('API Token is missing. Please provide one.');
   }
 
-  console.log(`🚀 Starting ${maxPages > 1 ? 'MULTI-PAGE' : 'SINGLE-PAGE'} STREAMING optimized scrape for: "${query}" (Max Pages: ${maxPages})`);
+  console.log(`🚀 Starting ${maxPages > 1 ? 'MULTI-PAGE' : 'SINGLE-PAGE'} ${superProxy ? 'SMART' : 'STANDARD'} scrape for: "${query}" (Max Pages: ${maxPages})`);
   
   const seenJobKeys = new Set<string>();
 
   for (let page = 0; page < maxPages; page++) {
     const start = page * 10;
-    // vjs=1 and from=searchOnHP help ensure a stable layout and pagination behavior
     const searchUrl = `https://in.indeed.com/jobs?q=${encodeURIComponent(query)}${start > 0 ? `&start=${start}` : ''}&vjs=1&from=searchOnHP`;
     
-    // super=false (Standard Proxy), render=false (High performance, ultra low cost: 1 credit)
-    const scrapeDoUrl = `https://api.scrape.do?token=${SCRAPEDO_TOKEN}&url=${encodeURIComponent(searchUrl)}&super=false&render=false`;
+    // super=true (Super Proxy), render=false
+    const scrapeDoUrl = `https://api.scrape.do?token=${SCRAPEDO_TOKEN}&url=${encodeURIComponent(searchUrl)}&super=${superProxy}&render=false`;
 
     if (page > 0) {
       console.log(`⏳ Waiting 1s before Page ${page + 1}...`);
@@ -173,11 +177,12 @@ export async function* scrapeIndeedJobs(query: string, maxPages: number = 1): As
       yield pageJobs;
 
     } catch (error: any) {
-      console.error(`❌ [Page ${page + 1}] Request failed: ${error.message}`);
-      // Break and terminate stream gracefully
-      break;
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        console.error(`❌ [Page ${page + 1}] API Key Error:`, error.response.data);
+        throw new Error('Your custom Scrape.do API key is invalid, has no credits, or is blocked.');
+      }
+      console.error(`❌ [Page ${page + 1}] Error:`, error.message);
+      throw error; 
     }
   }
 }
-
-

@@ -12,14 +12,13 @@ import {
   CardAction 
 } from "@/components/ui/card";
 import { 
-  Loader2, 
-  ExternalLink, 
-  MapPin, 
-  Building2, 
-  IndianRupee, 
-  Clock,
-  Briefcase
-} from "lucide-react";
+  RiLoader2Line, 
+  RiExternalLinkLine, 
+  RiMapPin2Line, 
+  RiBuilding2Line, 
+  RiTimeLine,
+  RiBriefcaseLine
+} from "@remixicon/react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { 
@@ -60,7 +59,7 @@ export function OutputArea({ jobs, loading, query }: OutputAreaProps) {
   if (loading && jobs.length === 0) {
     return (
       <div className="flex-1 flex flex-col justify-center items-center bg-muted/20 gap-3">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+        <RiLoader2Line className="size-6 animate-spin text-muted-foreground" />
         <span className="text-sm text-muted-foreground font-medium">Searching Indeed...</span>
       </div>
     );
@@ -72,7 +71,7 @@ export function OutputArea({ jobs, loading, query }: OutputAreaProps) {
         <Empty className="flex-1">
           <EmptyHeader>
             <EmptyMedia variant="icon">
-              <Briefcase className="size-5" />
+              <RiBriefcaseLine className="size-5" />
             </EmptyMedia>
             <EmptyTitle>
               {query ? "No live results found" : "Ready to Scrape"}
@@ -114,7 +113,7 @@ export function OutputArea({ jobs, loading, query }: OutputAreaProps) {
               <CardAction>
                 <Button variant="ghost" size="icon" asChild>
                   <a href={job.jobUrl || "#"} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="size-4" />
+                    <RiExternalLinkLine className="size-4" />
                   </a>
                 </Button>
               </CardAction>
@@ -122,13 +121,13 @@ export function OutputArea({ jobs, loading, query }: OutputAreaProps) {
               <CardDescription className="flex gap-4">
                 {job.company && (
                   <span className="flex items-center gap-1.5">
-                    <Building2 className="size-3.5" />
+                    <RiBuilding2Line className="size-3.5" />
                     {job.company}
                   </span>
                 )}
                 {job.location && (
                   <span className="flex items-center gap-1.5">
-                    <MapPin className="size-3.5" />
+                    <RiMapPin2Line className="size-3.5" />
                     {job.location}
                   </span>
                 )}
@@ -148,13 +147,13 @@ export function OutputArea({ jobs, loading, query }: OutputAreaProps) {
               )}
               {job.jobType && job.jobType !== 'No Job Type Info' && (
                 <div className="flex items-center gap-1">
-                  <Clock className="size-3" />
+                  <RiTimeLine className="size-3" />
                   {job.jobType}
                 </div>
               )}
               <div className="flex-1" />
               {job.benefits && job.benefits.slice(0, 3).map((b, i) => (
-                <Badge key={i} variant="secondary" className="px-1.5 py-0 text-[10px] font-normal">{b}</Badge>
+                <Badge key={i} variant="secondary" className="tracking-wider">{b}</Badge>
               ))}
             </CardFooter>
           </Card>
@@ -162,7 +161,7 @@ export function OutputArea({ jobs, loading, query }: OutputAreaProps) {
 
         {loading && (
           <div className="flex items-center justify-center gap-2 py-4 text-muted-foreground/60 italic text-xs animate-in fade-in duration-500">
-            <Loader2 className="size-3 animate-spin" />
+            <RiLoader2Line className="size-3 animate-spin" />
             Gathering more jobs...
           </div>
         )}

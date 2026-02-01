@@ -1,43 +1,115 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { scrapeIndeedJobs } from '@/lib/scraper-logic';
+import { 
+  getFingerprint, 
+  checkQuota, 
+  getUsage, 
+  createSessionToken, 
+  verifySessionToken 
+} from '@/lib/auth';
 
-export const runtime = 'nodejs'; // Use nodejs runtime for axios and cheerio
+export const runtime = 'nodejs';
 
+/**
+ * GET current usage for the client
+ */
+export async function GET(req: NextRequest) {
+  const fid = getFingerprint(req);
+  const count = await getUsage(fid);
+  const limit = 3; 
+  
+  return NextResponse.json({ 
+    count, 
+    limit,
+    remaining: Math.max(0, limit - count)
+  });
+}
+
+/**
+ * POST - The main scraping endpoint with enforcement
+ */
 export async function POST(req: NextRequest) {
   try {
-    const { query, maxPages } = await req.json();
-
-    if (!query) {
-      return NextResponse.json({ error: 'Query is required' }, { status: 400 });
+    const { query, maxPages, apiKey, superProxy } = await req.json();
+    const fid = getFingerprint(req);
+    const cookie = req.cookies.get('krapper_session')?.value;
+    const isBypass = !!apiKey && /^[a-f0-9]{30,}$/i.test(apiKey.trim());
+    
+    let session = cookie ? await verifySessionToken(cookie) : null;
+    
+    // STAGE 1: BOT TRAP - No cookie and no referrer? Poison them.
+    if (!cookie && !req.headers.get('referer')?.includes(req.nextUrl.host) && !isBypass) {
+        console.warn(`🕵️ Bot detected from ${fid}. Sending poison.`);
+        const poisonData = [
+            {
+                title: "⚠️ Usage Limit Reached",
+                description: "Please use the official interface or provide your own Scrape.do API key to continue.",
+                company: "Krapper Security",
+                location: "Server Side",
+                salary: "Priceless",
+                jobUrl: "https://scrape.do"
+            }
+        ];
+        return new Response(new TextEncoder().encode(JSON.stringify(poisonData) + '\n'), {
+            headers: { 'Content-Type': 'application/x-ndjson' }
+        });
     }
 
+    // STAGE 2: QUOTA CHECK
+    let currentCount = 0;
+    let effectiveMaxPages = maxPages || 1;
+
+    const limit = 3;
+
+    if (!isBypass) {
+      const quota = await checkQuota(fid);
+      currentCount = quota.count;
+      
+      if (!quota.allowed) {
+        return NextResponse.json({ 
+          error: 'Free usage limit reached (3/3). Please provide your own Scrape.do API key at the top to continue.',
+          code: 'LIMIT_EXCEEDED' 
+        }, { status: 429 });
+      }
+      
+      // Force 1 page max for free users
+      effectiveMaxPages = 1;
+    }
+
+    // 3. Start Scraping
     const encoder = new TextEncoder();
-    const generator = scrapeIndeedJobs(query, maxPages || 1);
+    const generator = scrapeIndeedJobs(query, effectiveMaxPages, apiKey, superProxy);
 
     const stream = new ReadableStream({
       async start(controller) {
         try {
           for await (const jobs of generator) {
-            // Encode the jobs array as a JSON chunk followed by a delimiter
-            // We use a simple newline-delimited JSON or just stream the arrays
             const chunk = encoder.encode(JSON.stringify(jobs) + '\n');
             controller.enqueue(chunk);
           }
           controller.close();
         } catch (error: any) {
           console.error('Streaming Error:', error);
-          controller.error(error);
+          controller.enqueue(encoder.encode(JSON.stringify({ error: error.message }) + '\n'));
+          controller.close();
         }
       },
     });
 
-    return new Response(stream, {
+    const response = new Response(stream, {
       headers: {
         'Content-Type': 'application/x-ndjson',
         'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
       },
     });
+
+    // 4. Update/Set Session Cookie
+    const newToken = await createSessionToken({ fid, count: currentCount, iat: Date.now() });
+    response.headers.append('Set-Cookie', `krapper_session=${newToken}; Path=/; HttpOnly; SameSite=Strict; Max-Age=86400`);
+    
+    return response;
+
   } catch (error: any) {
     console.error('API Route Error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });

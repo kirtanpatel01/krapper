@@ -6,7 +6,11 @@ import { OutputArea } from "@/components/output-area";
 import { ScrapedJob } from "@/lib/scraper-logic";
 import { toast } from "sonner";
 
-export function ScraperInterface() {
+interface ScraperInterfaceProps {
+  initialUsage?: number;
+}
+
+export function ScraperInterface({ initialUsage = 0 }: ScraperInterfaceProps) {
   const [jobs, setJobs] = useState<ScrapedJob[]>([]);
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState("");
@@ -21,7 +25,12 @@ export function ScraperInterface() {
     };
   }, []);
 
-  const handleScrape = async (submittedQuery: string, maxPages: number = 1) => {
+  const handleScrape = async (
+    submittedQuery: string, 
+    maxPages: number = 1, 
+    apiKey?: string, 
+    superProxy: boolean = false
+  ) => {
     // Abort any existing request
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -38,12 +47,22 @@ export function ScraperInterface() {
       const response = await fetch("/api/scrape", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: submittedQuery, maxPages }),
+        body: JSON.stringify({ 
+          query: submittedQuery, 
+          maxPages, 
+          apiKey, 
+          superProxy 
+        }),
         signal: newController.signal,
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to start scrape: ${response.statusText}`);
+        let errorMessage = `Failed to start scrape: ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (e) {}
+        throw new Error(errorMessage);
       }
 
       if (!response.body) {
@@ -63,17 +82,25 @@ export function ScraperInterface() {
 
         for (const line of lines) {
           try {
-            const newJobs = JSON.parse(line) as ScrapedJob[];
+            const data = JSON.parse(line);
+            
+            // Check for error sent through the stream
+            if (data.error) {
+              toast.error(data.error);
+              setLoading(false);
+              return; // Stop processing and exit function
+            }
+
+            const newJobs = data as ScrapedJob[];
             if (Array.isArray(newJobs) && newJobs.length > 0) {
               setJobs(prev => {
-                // Double check for duplicates that might slip through if multiple chunks process fast
                 const existingKeys = new Set(prev.map(j => j.jobUrl));
                 const uniqueNewJobs = newJobs.filter(j => !existingKeys.has(j.jobUrl));
                 return [...prev, ...uniqueNewJobs];
               });
               accumulatedCount += newJobs.length;
             }
-          } catch (e) {
+          } catch (e: any) {
             console.error("Error parsing stream chunk:", e);
           }
         }
@@ -85,8 +112,7 @@ export function ScraperInterface() {
         console.log('Scrape request aborted');
         return;
       }
-      console.error("Streaming Error:", err);
-      toast.error(err.message || "A network error occurred during streaming.");
+      toast.error(err.message || "A network error occurred.");
     } finally {
       if (abortControllerRef.current === newController) {
         setLoading(false);
@@ -103,7 +129,7 @@ export function ScraperInterface() {
 
   return (
     <section className="max-w-5xl mx-auto flex border border-dashed border-border rounded-xl h-full divide-dashed divide-x divide-border overflow-hidden bg-background/50 backdrop-blur-md inset-shadow-sm inset-shadow-primary/5">
-      <InputArea onScrape={handleScrape} onReset={handleReset} />
+      <InputArea onScrape={handleScrape} onReset={handleReset} initialUsage={initialUsage} />
       <OutputArea jobs={jobs} loading={loading} query={query} />
     </section>
   );
