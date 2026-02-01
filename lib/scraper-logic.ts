@@ -60,85 +60,123 @@ function extractJson(content: string, varName: string): any {
   return null;
 }
 
-export async function scrapeIndeedJobs(query: string): Promise<ScrapedJob[]> {
+export async function* scrapeIndeedJobs(query: string, maxPages: number = 1): AsyncGenerator<ScrapedJob[]> {
   const SCRAPEDO_TOKEN = (process.env.SCRAPEDO_TOKEN || '').trim();
 
   if (!SCRAPEDO_TOKEN) {
     throw new Error('SCRAPEDO_TOKEN is missing in environment variables.');
   }
 
-  console.log(`🚀 Starting LIVE optimized scrape (REST API) for: "${query}"`);
+  console.log(`🚀 Starting ${maxPages > 1 ? 'MULTI-PAGE' : 'SINGLE-PAGE'} STREAMING optimized scrape for: "${query}" (Max Pages: ${maxPages})`);
   
-  const searchUrl = `https://in.indeed.com/jobs?q=${encodeURIComponent(query)}`;
-  // super=true (Residential Proxy), render=false (High performance, low cost)
-  const scrapeDoUrl = `https://api.scrape.do?token=${SCRAPEDO_TOKEN}&url=${encodeURIComponent(searchUrl)}&super=false&render=false`;
+  const seenJobKeys = new Set<string>();
 
-  try {
-    const response = await axios.get(scrapeDoUrl);
-    const html = response.data;
-    const $ = cheerio.load(html);
+  for (let page = 0; page < maxPages; page++) {
+    const start = page * 10;
+    // vjs=1 and from=searchOnHP help ensure a stable layout and pagination behavior
+    const searchUrl = `https://in.indeed.com/jobs?q=${encodeURIComponent(query)}${start > 0 ? `&start=${start}` : ''}&vjs=1&from=searchOnHP`;
     
-    let scrapedJobs: ScrapedJob[] = [];
+    // super=false (Standard Proxy), render=false (High performance, ultra low cost: 1 credit)
+    const scrapeDoUrl = `https://api.scrape.do?token=${SCRAPEDO_TOKEN}&url=${encodeURIComponent(searchUrl)}&super=false&render=false`;
 
-    // Indeed embeds data in script tags. We look for 'mosaic-provider-jobcards'
-    $('script').each((_, el) => {
-      const content = $(el).html() || '';
-      if (content.includes('mosaic-provider-jobcards')) {
-        const data = extractJson(content, 'window.mosaic.providerData["mosaic-provider-jobcards"]');
-        if (data) {
-          const results = data.results || data.metaData?.mosaicProviderJobCardsModel?.results;
-          if (results && Array.isArray(results)) {
-            console.log(`✅ Extracted ${results.length} live jobs from Indeed.`);
-            scrapedJobs = results.map((job: any) => ({
-              title: job.displayTitle || job.title,
-              company: job.company,
-              location: job.formattedLocation,
-              salary: job.salarySnippet?.text || 'No Salary Info',
-              jobType: (job.taxonomyAttributes?.find((t: any) => t.label === 'job-types')?.attributes?.[0]?.label) || 'Full-time',
-              description: job.snippet ? job.snippet.replace(/<[^>]*>?/gm, '') : 'No Snippet Available',
-              jobUrl: `https://in.indeed.com/viewjob?jk=${job.jobkey}`,
-              benefits: job.taxonomyAttributes?.find((t: any) => t.label === 'benefits')?.attributes?.map((a: any) => a.label),
-              qualifications: job.taxonomyAttributes?.find((t: any) => t.label === 'qualifications')?.attributes?.map((a: any) => a.label),
-            }));
-          }
-        }
-      }
-    });
+    if (page > 0) {
+      console.log(`⏳ Waiting 1s before Page ${page + 1}...`);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
 
-    // Fallback to initialData if jobcards failed
-    if (scrapedJobs.length === 0) {
+    try {
+      console.log(`🔍 [Page ${page + 1}] Requesting: ${searchUrl}`);
+      const response = await axios.get(scrapeDoUrl, { timeout: 15000 });
+      const html = response.data;
+      const $ = cheerio.load(html);
+      
+      let pageJobs: ScrapedJob[] = [];
+      let foundScriptCount = 0;
+
+      // Indeed embeds data in script tags. We look for 'mosaic-provider-jobcards'
       $('script').each((_, el) => {
         const content = $(el).html() || '';
-        if (content.includes('window.mosaic.initialData')) {
-          const data = extractJson(content, 'window.mosaic.initialData');
-          const results = data?.metaData?.mosaicProviderPostProcessedData?.['serp-relevant-jobs']?.jobPostings;
-          if (results && Array.isArray(results)) {
-             console.log(`✅ Extracted ${results.length} jobs from initialData fallback.`);
-             scrapedJobs = results.map((job: any) => ({
-               title: job.title,
-               company: job.company,
-               location: job.location,
-               salary: job.salary || 'No Salary Info',
-               jobType: job.jobType || 'Full-time',
-               description: job.snippet || 'No Snippet Available',
-               jobUrl: `https://in.indeed.com/viewjob?jk=${job.jobkey}`,
-             }));
+        if (content.includes('mosaic-provider-jobcards')) {
+          foundScriptCount++;
+          const data = extractJson(content, 'window.mosaic.providerData["mosaic-provider-jobcards"]');
+          if (data) {
+            const results = data.results || data.metaData?.mosaicProviderJobCardsModel?.results;
+            if (results && Array.isArray(results)) {
+              console.log(`📦 [Page ${page + 1}] Found ${results.length} raw jobs in mosaic-provider-jobcards.`);
+              results.forEach((job: any) => {
+                const jobKey = job.jobkey || job.jk || Math.random().toString(36).substring(7);
+                if (!seenJobKeys.has(jobKey)) {
+                  seenJobKeys.add(jobKey);
+                  pageJobs.push({
+                    title: job.displayTitle || job.title,
+                    company: job.company,
+                    location: job.formattedLocation,
+                    salary: job.salarySnippet?.text || 'No Salary Info',
+                    jobType: (job.taxonomyAttributes?.find((t: any) => t.label === 'job-types')?.attributes?.[0]?.label) || 'Full-time',
+                    description: job.snippet ? job.snippet.replace(/<[^>]*>?/gm, '') : 'No Snippet Available',
+                    jobUrl: `https://in.indeed.com/viewjob?jk=${jobKey}`,
+                    benefits: job.taxonomyAttributes?.find((t: any) => t.label === 'benefits')?.attributes?.map((a: any) => a.label),
+                    qualifications: job.taxonomyAttributes?.find((t: any) => t.label === 'qualifications')?.attributes?.map((a: any) => a.label),
+                  });
+                }
+              });
+            }
           }
         }
       });
-    }
 
-    if (scrapedJobs.length === 0) {
-      if (html.includes('Access Denied') || html.includes('captcha')) {
-        throw new Error('Indeed block detected (Captcha or Access Denied).');
+      // Fallback to initialData if jobcards failed
+      if (pageJobs.length === 0) {
+        console.log(`⚠️ [Page ${page + 1}] jobcards extraction failed or empty. Trying initialData fallback...`);
+        $('script').each((_, el) => {
+          const content = $(el).html() || '';
+          if (content.includes('window.mosaic.initialData')) {
+            foundScriptCount++;
+            const data = extractJson(content, 'window.mosaic.initialData');
+            const results = data?.metaData?.mosaicProviderPostProcessedData?.['serp-relevant-jobs']?.jobPostings;
+            if (results && Array.isArray(results)) {
+               console.log(`📦 [Page ${page + 1}] Found ${results.length} jobs in initialData fallback.`);
+               results.forEach((job: any) => {
+                 const jobKey = job.jobkey || job.jk || Math.random().toString(36).substring(7);
+                 if (!seenJobKeys.has(jobKey)) {
+                   seenJobKeys.add(jobKey);
+                   pageJobs.push({
+                     title: job.title,
+                     company: job.company,
+                     location: job.location,
+                     salary: job.salary || 'No Salary Info',
+                     jobType: job.jobType || 'Full-time',
+                     description: job.snippet || 'No Snippet Available',
+                     jobUrl: `https://in.indeed.com/viewjob?jk=${jobKey}`,
+                   });
+                 }
+               });
+            }
+          }
+        });
       }
-      throw new Error(`No jobs found for "${query}". Indeed might have changed their structure.`);
-    }
 
-    return scrapedJobs;
-  } catch (error: any) {
-    console.error(`❌ Scraping failed: ${error.message}`);
-    throw error; // Re-throw to be handled by the server action
+      if (foundScriptCount === 0) {
+        console.error(`❌ [Page ${page + 1}] Blocked or Script tag missing! (HTML length: ${html.length})`);
+        if (html.includes('Captcha') || html.includes('challenge')) {
+          console.error(`🛑 Detected Captcha/Challenge on Page ${page + 1}. Stopping.`);
+          break;
+        }
+      }
+
+      if (pageJobs.length === 0) {
+        console.log(`⏹️ [Page ${page + 1}] No NEW unique jobs found. Breaking loop.`);
+        break;
+      }
+
+      console.log(`✅ [Page ${page + 1}] Successfully added ${pageJobs.length} unique jobs.`);
+      yield pageJobs;
+
+    } catch (error: any) {
+      console.error(`❌ [Page ${page + 1}] Request failed: ${error.message}`);
+      // Break and terminate stream gracefully
+      break;
+    }
   }
 }
 
