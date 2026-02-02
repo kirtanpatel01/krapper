@@ -10,6 +10,8 @@ import {
 
 export const runtime = 'nodejs';
 
+const API_KEY_REGEX = /^[a-f0-9]{30,}$/i;
+
 /**
  * GET current usage for the client
  */
@@ -33,9 +35,10 @@ export async function POST(req: NextRequest) {
     const { query, maxPages, apiKey, superProxy } = await req.json();
     const fid = getFingerprint(req);
     const cookie = req.cookies.get('krapper_session')?.value;
-    const isBypass = !!apiKey && /^[a-f0-9]{30,}$/i.test(apiKey.trim());
-    
-    let session = cookie ? await verifySessionToken(cookie) : null;
+    const isBypass = !!apiKey && API_KEY_REGEX.test(apiKey.trim());
+
+    // Start session verification early
+    const sessionPromise = cookie ? verifySessionToken(cookie) : Promise.resolve(null);
     
     // STAGE 1: BOT TRAP - No cookie and no referrer? Poison them.
     if (!cookie && !req.headers.get('referer')?.includes(req.nextUrl.host) && !isBypass) {
@@ -55,10 +58,11 @@ export async function POST(req: NextRequest) {
         });
     }
 
+    const session = await sessionPromise;
+
     // STAGE 2: QUOTA CHECK
     let currentCount = 0;
     let effectiveMaxPages = maxPages || 1;
-
     const limit = 3;
 
     if (!isBypass) {

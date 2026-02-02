@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { InputArea } from "@/components/input-area";
 import { OutputArea } from "@/components/output-area";
 import { ScrapedJob } from "@/lib/scraper-logic";
+import { MOCK_JOBS } from "@/lib/mock-data";
 import { toast } from "sonner";
 
 interface ScraperInterfaceProps {
@@ -18,6 +19,10 @@ export function ScraperInterface({ initialUsage = 0 }: ScraperInterfaceProps) {
 
   // Cleanup on unmount
   useEffect(() => {
+    // Load mock data on start
+    setJobs(MOCK_JOBS);
+    setQuery("Software Developer");
+
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
@@ -129,7 +134,12 @@ export function ScraperInterface({ initialUsage = 0 }: ScraperInterfaceProps) {
 
   return (
     <section className="max-w-5xl mx-auto flex border border-dashed border-border rounded-xl h-full divide-dashed divide-x divide-border overflow-hidden bg-background/50 backdrop-blur-md inset-shadow-sm inset-shadow-primary/5">
-      <InputArea onScrape={handleScrape} onReset={handleReset} initialUsage={initialUsage} />
+      <InputArea 
+        onScrape={handleScrape} 
+        onReset={handleReset} 
+        initialUsage={initialUsage} 
+        defaultQuery={query}
+      />
       <OutputArea jobs={jobs} loading={loading} query={query} />
     </section>
   );
