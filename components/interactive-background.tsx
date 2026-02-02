@@ -24,7 +24,7 @@ export function InteractiveBackground() {
       ref={containerRef}
       className="fixed inset-0 pointer-events-none overflow-hidden z-0 [--mouse-x:50%] [--mouse-y:50%]"
     >
-      {/* Revealed Grid Lines */}
+
       <div 
         className="absolute inset-0 opacity-[0.06]"
         style={{

@@ -12,9 +12,7 @@ export const runtime = 'nodejs';
 
 const API_KEY_REGEX = /^[a-f0-9]{30,}$/i;
 
-/**
- * GET current usage for the client
- */
+
 export async function GET(req: NextRequest) {
   const fid = getFingerprint(req);
   const count = await getUsage(fid);
@@ -27,9 +25,7 @@ export async function GET(req: NextRequest) {
   });
 }
 
-/**
- * POST - The main scraping endpoint with enforcement
- */
+
 export async function POST(req: NextRequest) {
   try {
     const { query, maxPages, apiKey, superProxy } = await req.json();
@@ -42,7 +38,7 @@ export async function POST(req: NextRequest) {
     
     // STAGE 1: BOT TRAP - No cookie and no referrer? Poison them.
     if (!cookie && !req.headers.get('referer')?.includes(req.nextUrl.host) && !isBypass) {
-        console.warn(`🕵️ Bot detected from ${fid}. Sending poison.`);
+
         const poisonData = [
             {
                 title: "⚠️ Usage Limit Reached",
@@ -93,7 +89,7 @@ export async function POST(req: NextRequest) {
           }
           controller.close();
         } catch (error: any) {
-          console.error('Streaming Error:', error);
+
           controller.enqueue(encoder.encode(JSON.stringify({ error: error.message }) + '\n'));
           controller.close();
         }
@@ -115,7 +111,7 @@ export async function POST(req: NextRequest) {
     return response;
 
   } catch (error: any) {
-    console.error('API Route Error:', error);
+
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

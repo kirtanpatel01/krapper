@@ -7,23 +7,18 @@ const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'krapper-default-secret-change-me'
 );
 
-// Initialize Upstash Redis
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL!,
   token: process.env.UPSTASH_REDIS_REST_TOKEN!,
 });
 
 export interface SessionData {
-  fid: string; // Fingerprint ID
+  fid: string;
   count: number;
   iat: number;
 }
 
-/**
- * Creates a simple fingerprint based on IP and User-Agent
- * Works in both API routes (NextRequest) and Server Components (Headers)
- */
-export function getFingerprint(source: NextRequest | Headers) {
+ export function getFingerprint(source: NextRequest | Headers) {
   let ip = '127.0.0.1';
   let ua = 'unknown';
 
@@ -36,14 +31,12 @@ export function getFingerprint(source: NextRequest | Headers) {
     return null;
   };
 
-  // Try to get a reliable IP - Prioritize headers for consistency
   ip = getHeader('x-forwarded-for')?.split(',')[0] || 
        getHeader('x-real-ip') || 
-       getHeader('cf-connecting-ip') || // Cloudflare
+       getHeader('cf-connecting-ip') || 
        ('ip' in source ? (source as any).ip : null) || 
        '127.0.0.1';
 
-  // Scrub any IPv6 localhost to stay consistent with '127.0.0.1'
   if (ip === '::1') ip = '127.0.0.1';
 
   ua = getHeader('user-agent') || 'unknown';
@@ -52,10 +45,6 @@ export function getFingerprint(source: NextRequest | Headers) {
   return fid;
 }
 
-/**
- * Checks and increments usage for a free-tier user using Redis
- * Returns { allowed: boolean, count: number }
- */
 export async function checkQuota(fid: string): Promise<{ allowed: boolean; count: number }> {
   const key = `usage:${fid}`;
   const limit = 3;
@@ -64,7 +53,6 @@ export async function checkQuota(fid: string): Promise<{ allowed: boolean; count
   
   if (currentCount < limit) {
     const newCount = await redis.incr(key);
-    // Set 24h expiration on the first increment
     if (newCount === 1) {
       await redis.expire(key, 86400);
     }
@@ -74,17 +62,11 @@ export async function checkQuota(fid: string): Promise<{ allowed: boolean; count
   return { allowed: false, count: currentCount };
 }
 
-/**
- * Gets current usage without incrementing
- */
 export async function getUsage(fid: string): Promise<number> {
   const count = await redis.get<number>(`usage:${fid}`);
   return count || 0;
 }
 
-/**
- * Signs a session token
- */
 export async function createSessionToken(data: SessionData) {
   return await new SignJWT({ ...data })
     .setProtectedHeader({ alg: 'HS256' })
@@ -93,9 +75,6 @@ export async function createSessionToken(data: SessionData) {
     .sign(JWT_SECRET);
 }
 
-/**
- * Verifies a session token
- */
 export async function verifySessionToken(token: string) {
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);

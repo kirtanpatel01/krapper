@@ -10,14 +10,12 @@ import { JobCard } from "./output-area/job-card";
 import { EmptyState } from "./output-area/empty-state";
 import { LoadingState } from "./output-area/loading-state";
 import { JobsPagination } from "./output-area/jobs-pagination";
+import { useScraperStore } from "@/lib/store";
 
-interface OutputAreaProps {
-  jobs: ScrapedJob[];
-  loading: boolean;
-  query: string;
-}
+interface OutputAreaProps {}
 
-export function OutputArea({ jobs, loading, query }: OutputAreaProps) {
+export function OutputArea({}: OutputAreaProps) {
+  const { jobs, loading, query } = useScraperStore();
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 15;
 
@@ -41,7 +39,7 @@ export function OutputArea({ jobs, loading, query }: OutputAreaProps) {
   }
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 relative">
+    <div className="flex-1 hidden lg:flex flex-col min-h-0 relative">
       {/* Top bar with stats */}
       <ResultsHeader 
         jobsCount={jobs.length} 

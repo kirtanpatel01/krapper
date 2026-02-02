@@ -1,6 +1,6 @@
 'use client'
 
-import { RiKey2Line, RiEyeLine, RiEyeOffLine } from "@remixicon/react";
+import { RiKey2Line, RiEyeLine, RiEyeOffLine, RiShieldUserLine } from "@remixicon/react";
 import { Badge } from "@/components/ui/badge";
 import {
   Field,
@@ -67,6 +67,14 @@ export function ApiKeyField({
           </button>
         </InputGroupAddon>
       </InputGroup>
+
+      <div className="mt-2 flex items-start gap-2 text-[10px] text-muted-foreground/50 leading-relaxed bg-primary/5 p-2 rounded-lg border border-primary/10">
+        <RiShieldUserLine className="size-3 mt-0.5 shrink-0 text-primary/40" />
+        <p>
+          Your API key is processed <span className="text-primary/60 font-medium">locally</span> for the current session. 
+          We do not store, log, or share your credentials with third parties.
+        </p>
+      </div>
     </Field>
   );
 }

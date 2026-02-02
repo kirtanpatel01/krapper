@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { InputArea } from "@/components/input-area";
 import { OutputArea } from "@/components/output-area";
 import { ScrapedJob } from "@/lib/scraper-logic";
-import { MOCK_JOBS } from "@/lib/mock-data";
+import { useScraperStore } from "@/lib/store";
 import { toast } from "sonner";
 
 interface ScraperInterfaceProps {
@@ -12,23 +12,19 @@ interface ScraperInterfaceProps {
 }
 
 export function ScraperInterface({ initialUsage = 0 }: ScraperInterfaceProps) {
-  const [jobs, setJobs] = useState<ScrapedJob[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [query, setQuery] = useState("");
+  const { setJobs, addJobs, setLoading, setQuery, setUsage, reset } = useScraperStore();
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Cleanup on unmount
   useEffect(() => {
-    // Load mock data on start
-    setJobs(MOCK_JOBS);
-    setQuery("Software Developer");
+    setQuery("");
+    setUsage({ count: initialUsage });
 
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
     };
-  }, []);
+  }, [initialUsage, setJobs, setQuery, setUsage]);
 
   const handleScrape = async (
     submittedQuery: string, 
@@ -98,15 +94,11 @@ export function ScraperInterface({ initialUsage = 0 }: ScraperInterfaceProps) {
 
             const newJobs = data as ScrapedJob[];
             if (Array.isArray(newJobs) && newJobs.length > 0) {
-              setJobs(prev => {
-                const existingKeys = new Set(prev.map(j => j.jobUrl));
-                const uniqueNewJobs = newJobs.filter(j => !existingKeys.has(j.jobUrl));
-                return [...prev, ...uniqueNewJobs];
-              });
+              addJobs(newJobs);
               accumulatedCount += newJobs.length;
             }
           } catch (e: any) {
-            console.error("Error parsing stream chunk:", e);
+             // Silently ignore parsing errors for partial chunks
           }
         }
       }
@@ -114,7 +106,6 @@ export function ScraperInterface({ initialUsage = 0 }: ScraperInterfaceProps) {
       toast.success(`Scrape complete! Found ${accumulatedCount} jobs.`);
     } catch (err: any) {
       if (err.name === 'AbortError') {
-        console.log('Scrape request aborted');
         return;
       }
       toast.error(err.message || "A network error occurred.");
@@ -127,9 +118,7 @@ export function ScraperInterface({ initialUsage = 0 }: ScraperInterfaceProps) {
   };
 
   const handleReset = () => {
-    setJobs([]);
-    setLoading(false);
-    setQuery("");
+    reset();
   };
 
   return (
@@ -137,10 +126,8 @@ export function ScraperInterface({ initialUsage = 0 }: ScraperInterfaceProps) {
       <InputArea 
         onScrape={handleScrape} 
         onReset={handleReset} 
-        initialUsage={initialUsage} 
-        defaultQuery={query}
       />
-      <OutputArea jobs={jobs} loading={loading} query={query} />
+      <OutputArea />
     </section>
   );
 }

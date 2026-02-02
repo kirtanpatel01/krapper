@@ -4,48 +4,45 @@ import { useRef, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
-// Sub-components
+
 import { ApiKeyField } from "./input-area/api-key-field";
 import { QueryField } from "./input-area/query-field";
 import { SmartScrapingToggle } from "./input-area/smart-scraping-toggle";
 import { DeepScrapeToggle } from "./input-area/deep-scrape-toggle";
 import { PageCounter } from "./input-area/page-counter";
+import OutputAreaDialog from "./output-area-dialog";
+import { useScraperStore } from "@/lib/store";
 
 const API_KEY_REGEX = /^[a-f0-9]{30,}$/i;
 
 interface InputAreaProps {
   onScrape: (query: string, maxPages: number, apiKey?: string, superProxy?: boolean) => void;
   onReset: () => void;
-  initialUsage?: number;
-  defaultQuery?: string;
 }
 
-export function InputArea({ onScrape, onReset, initialUsage = 0, defaultQuery = "" }: InputAreaProps) {
+export function InputArea({ onScrape, onReset }: InputAreaProps) {
+  const { usage, setUsage, query, jobs, loading } = useScraperStore();
   const inputRef = useRef<HTMLInputElement>(null);
   
-  // State
+
   const [apiKey, setApiKey] = useState("");
   const [showApiKey, setShowApiKey] = useState(false);
   const [isDeepScrape, setIsDeepScrape] = useState(false);
   const [pageCount, setPageCount] = useState(1);
   const [isSmartScraping, setIsSmartScraping] = useState(false);
-  const [usage, setUsage] = useState({ count: initialUsage, limit: 3 });
 
-  // Derived State
+
   const hasCustomKey = API_KEY_REGEX.test(apiKey.trim());
   const isUsageLimitReached = usage.count >= usage.limit && !hasCustomKey;
 
-  // Sync with initialUsage only once on mount to establish server-sent state
-  useEffect(() => {
-    setUsage(prev => ({ ...prev, count: initialUsage }));
-    
-    // Set default query if provided
-    if (defaultQuery && inputRef.current) {
-      inputRef.current.value = defaultQuery;
-    }
-  }, [initialUsage, defaultQuery]);
 
-  // Handlers
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.value = query;
+    }
+  }, [query]);
+
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const query = inputRef.current?.value.trim() || "";
@@ -69,7 +66,7 @@ export function InputArea({ onScrape, onReset, initialUsage = 0, defaultQuery = 
     
     // Optimistically increment usage for free users
     if (!hasCustomKey) {
-      setUsage(prev => ({ ...prev, count: prev.count + 1 }));
+      setUsage({ count: usage.count + 1 });
     }
   };
 
@@ -82,7 +79,7 @@ export function InputArea({ onScrape, onReset, initialUsage = 0, defaultQuery = 
     inputRef.current?.focus();
   };
 
-  // Shortcuts
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "/") {
@@ -137,10 +134,13 @@ export function InputArea({ onScrape, onReset, initialUsage = 0, defaultQuery = 
           <Button 
             type="submit" 
             disabled={isUsageLimitReached}
-            className={`flex-1 cursor-pointer inset-shadow-sm h-11 transition-all ${isUsageLimitReached ? 'bg-muted text-muted-foreground grayscale cursor-not-allowed' : 'bg-primary'}`}
+            className={`flex-1 hidden lg:flex cursor-pointer inset-shadow-sm h-11 transition-all ${isUsageLimitReached ? 'bg-muted text-muted-foreground grayscale cursor-not-allowed' : 'bg-primary'}`}
           >
             {isUsageLimitReached ? 'Limit Reached' : 'Scrape'}
           </Button>
+          <OutputAreaDialog 
+            isUsageLimitReached={isUsageLimitReached}
+          />
           <Button
             type="button"
             variant="outline"
