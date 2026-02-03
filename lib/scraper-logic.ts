@@ -57,7 +57,7 @@ function extractJson(content: string, varName: string): any {
   return null;
 }
 
-export async function* scrapeIndeedJobs(
+export async function* scrapeJobs(
   query: string, 
   maxPages: number = 1,
   apiKey?: string,

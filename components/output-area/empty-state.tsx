@@ -27,7 +27,7 @@ export function EmptyState({ query }: EmptyStateProps) {
           <EmptyDescription>
             {query 
               ? `We couldn't find any results for "${query}". Try refining your keywords.` 
-              : "Enter a job title or keyword on the left to start searching Indeed."}
+              : "Enter a job title or keyword on the left to start searching for jobs."}
           </EmptyDescription>
         </EmptyHeader>
       </Empty>

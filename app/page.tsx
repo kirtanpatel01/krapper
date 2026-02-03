@@ -3,6 +3,7 @@ import { ModeToggle } from "@/components/mode-toggle";
 import { InteractiveBackground } from "@/components/interactive-background";
 import { headers } from "next/headers";
 import { getFingerprint, getUsage } from "@/lib/auth";
+import Image from "next/image";
 
 export default async function Page() {
   const headerList = await headers();
@@ -15,9 +16,8 @@ export default async function Page() {
 
       <header className="w-full flex justify-between items-center">
         <div className="flex items-center gap-2 group cursor-default select-none">
-          <div className="relative flex items-center justify-center">
-            <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-0 group-hover:scale-100 transition-transform duration-700" />
-
+          <div className="relative flex items-center justify-center gap-2">
+            <Image src="/krapper-logo-square-bg.svg" alt="Krapper Logo" width={44} height={44} />
             <div className="relative size-full rounded-lg bg-secondary/50 backdrop-blur-xl border border-border/40 shadow-sm flex items-center justify-center transition-all duration-500 group-hover:border-primary group-hover:bg-secondary/80 px-3 py-1">
               <h1 className="text-foreground font-black text-2xl transition-all duration-700 group-hover:text-primary italic">Krapper</h1>
             </div>

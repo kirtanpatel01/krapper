@@ -2,33 +2,53 @@ import type { Metadata } from "next";
 import { Roboto } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
+import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "@/components/ui/sonner";
 
 const roboto = Roboto({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
-  title: "Krapper | High-Speed Indeed Job Scraper",
-  description: "Extract job listings from Indeed in seconds using Krapper's high-speed, proxy-powered scraping technology. No registration required.",
-  keywords: ["job scraper", "indeed scraper", "job search tool", "data extraction", "scraping"],
+  metadataBase: new URL("https://krapper.vercel.app"),
+  title: "Krapper | High-Speed Job Scraper",
+  description: "Extract job listings in seconds using Krapper's high-speed, proxy-powered scraping technology. No registration required.",
+  keywords: ["job scraper", "job search tool", "data extraction", "scraping"],
   authors: [{ name: "Kirtan Patel" }],
   openGraph: {
-    title: "Krapper | High-Speed Indeed Job Scraper",
-    description: "Extract job listings from Indeed in seconds using Krapper's high-speed, proxy-powered scraping technology.",
+    title: "Krapper | High-Speed Job Scraper",
+    description: "Extract job listings in seconds using Krapper's high-speed, proxy-powered scraping technology.",
     type: "website",
     locale: "en_US",
     siteName: "Krapper",
+    images: [
+      {
+        url: "/og.png",
+        width: 1200,
+        height: 630,
+        alt: "Krapper | High-Speed Job Scraper",
+      },
+      {
+        url: "/square.png",
+        width: 600,
+        height: 600,
+        alt: "Krapper Icon",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Krapper | High-Speed Indeed Job Scraper",
-    description: "Extract job listings from Indeed in seconds using Krapper's high-speed, proxy-powered scraping technology.",
+    title: "Krapper | High-Speed Job Scraper",
+    description: "Extract job listings in seconds using Krapper's high-speed, proxy-powered scraping technology.",
+    images: ["/card.png"],
   },
   alternates: {
-    canonical: "https://krapper.vercel.app",
+    canonical: "/",
+  },
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+    apple: "/apple-touch-icon.png",
   },
 };
-
-import { ThemeProvider } from "@/components/theme-provider";
-import { Toaster } from "@/components/ui/sonner";
 
 export default function RootLayout({
   children,

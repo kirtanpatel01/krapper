@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { scrapeIndeedJobs } from '@/lib/scraper-logic';
+import { scrapeJobs } from '@/lib/scraper-logic';
 import { 
   getFingerprint, 
   checkQuota, 
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
 
     // 3. Start Scraping
     const encoder = new TextEncoder();
-    const generator = scrapeIndeedJobs(query, effectiveMaxPages, apiKey, superProxy);
+    const generator = scrapeJobs(query, effectiveMaxPages, apiKey, superProxy);
 
     const stream = new ReadableStream({
       async start(controller) {
