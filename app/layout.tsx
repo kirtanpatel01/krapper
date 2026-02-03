@@ -13,41 +13,6 @@ export const metadata: Metadata = {
   description: "Extract job listings in seconds using Krapper's high-speed, proxy-powered scraping technology. No registration required.",
   keywords: ["job scraper", "job search tool", "data extraction", "scraping"],
   authors: [{ name: "Kirtan Patel" }],
-  openGraph: {
-    title: "Krapper | High-Speed Job Scraper",
-    description: "Extract job listings in seconds using Krapper's high-speed, proxy-powered scraping technology.",
-    type: "website",
-    locale: "en_US",
-    siteName: "Krapper",
-    images: [
-      {
-        url: "https://krapper.vercel.app/og.png",
-        width: 1200,
-        height: 630,
-        alt: "Krapper | High-Speed Job Scraper",
-      },
-      {
-        url: "https://krapper.vercel.app/square.png",
-        width: 600,
-        height: 600,
-        alt: "Krapper Icon",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Krapper | High-Speed Job Scraper",
-    description: "Extract job listings in seconds using Krapper's high-speed, proxy-powered scraping technology.",
-    images: ["https://krapper.vercel.app/card.png"],
-  },
-  alternates: {
-    canonical: "/",
-  },
-  icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon.ico",
-    apple: "/apple-touch-icon.png",
-  },
 };
 
 export default function RootLayout({
@@ -58,10 +23,6 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <meta property="og:image" content="<generated>" />
-        <meta property="og:image:type" content="<generated>" />
-        <meta property="og:image:width" content="<generated>" />
-        <meta property="og:image:height" content="<generated>" />
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-K97XZWQ6QB"
           strategy="afterInteractive"
