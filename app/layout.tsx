@@ -21,13 +21,13 @@ export const metadata: Metadata = {
     siteName: "Krapper",
     images: [
       {
-        url: "/og.png",
+        url: "https://krapper.vercel.app/og.png",
         width: 1200,
         height: 630,
         alt: "Krapper | High-Speed Job Scraper",
       },
       {
-        url: "/square.png",
+        url: "https://krapper.vercel.app/square.png",
         width: 600,
         height: 600,
         alt: "Krapper Icon",
@@ -38,7 +38,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Krapper | High-Speed Job Scraper",
     description: "Extract job listings in seconds using Krapper's high-speed, proxy-powered scraping technology.",
-    images: ["/card.png"],
+    images: ["https://krapper.vercel.app/card.png"],
   },
   alternates: {
     canonical: "/",
